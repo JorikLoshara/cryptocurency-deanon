@@ -1,5 +1,4 @@
 import sys
-
 import bs4
 import requests
 import re
@@ -14,7 +13,6 @@ from urllib.parse import urljoin, urlparse
 #TARGET_URL = "https://github.com/burakcanekici/BitcoinAddressValidator"
 #TARGET_URL = "https://github.com/burakcanekici"
 TARGET_URL = "https://github.com/search?q=blockchain&type=Repositories"
-MAX_DEPTH = 2
 target_host = None
 session = None
 re_btc = re.compile('1.{26,33}')
@@ -40,12 +38,12 @@ def is_btc_addr_correct(addr):
     else:
         return False
 
-def parse_page(url, recursion_depth=0):
-    if recursion_depth == MAX_DEPTH:
+def parse_page(url, recursion_depth):
+    if recursion_depth == 0:
         return
-    #print(recursion_depth)
     print(url)
-    time.sleep(0.9)
+    time.sleep(0.8)
+
     try:
         page_text = requests.get(url).text
     except:
@@ -67,7 +65,6 @@ def parse_page(url, recursion_depth=0):
     #search for cryptoaddrs
     btc_addrs = []
     eth_addrs = []
-
     for t in bs.findAll(text=True):
         btc_addrs.extend(re_btc.findall(t))
         eth_addrs.extend(re_eth.findall(t))
@@ -78,7 +75,7 @@ def parse_page(url, recursion_depth=0):
         found_eth[url] = eth_addrs
 
     for link in good_links:
-        parse_page(link, recursion_depth+1)
+        parse_page(link, recursion_depth-1)
 
 
 def get_base_url(url):
@@ -88,19 +85,18 @@ def get_base_url(url):
 def get_full_url_from_relative(rel):
     return urljoin(target_host, rel)
 
-
 def main(argv):
     global target_host, session
 
     TARGET_URL = argv[1]
-    MAX_DEPTH = int(argv[2])
+    depth = int(argv[2])
 
     print("target: ", TARGET_URL)
-    print("max depth: ", MAX_DEPTH)
+    print("depth: ", depth)
 
     target_host = get_base_url(TARGET_URL)
     session = requests.session()
-    parse_page(TARGET_URL)
+    parse_page(TARGET_URL, depth)
     print('BTC')
     for a in found_btc:
         print(a)
